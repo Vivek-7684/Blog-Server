@@ -9,11 +9,11 @@ const app = express();
 
 app.use(express.json());
 
-app.cors({
-    origin: "*",
+app.use(cors({
+    origin: "http://localhost:3000",
     methods: ["GET", "POST", "PUT", "DELETE"],
     // Credentials: true,
-});
+}));
 
 let connection;
 
@@ -64,10 +64,9 @@ app.post("/login", async (req, res) => {
         res.cookie("token", token, {
           httpOnly: true,
           secure: true,
-          sameSite: "Strict",
           maxAge: 3600000,
         });
-        
+
         return res.status(200).json(token);
       }
     });
