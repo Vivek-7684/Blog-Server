@@ -3,10 +3,17 @@ const express = require("express");
 const { loginSchema } = require("./validaton");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const cors = require("cors");
 const { fromZodError } = require("zod-validation-error");
 const app = express();
 
 app.use(express.json());
+
+app.cors({
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    // Credentials: true,
+});
 
 let connection;
 
@@ -53,6 +60,14 @@ app.post("/login", async (req, res) => {
         const token = jwt.sign({ email: email }, "spiderman@123", {
           expiresIn: "1h",
         });
+
+        res.cookie("token", token, {
+          httpOnly: true,
+          secure: true,
+          sameSite: "Strict",
+          maxAge: 3600000,
+        });
+        
         return res.status(200).json(token);
       }
     });
