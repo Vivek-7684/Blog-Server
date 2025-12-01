@@ -9,11 +9,14 @@ const app = express();
 
 app.use(express.json());
 
-app.use(cors({
-    origin: "http://localhost:3000",
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    // "methods":"GET,POST,PUT,DELTE"
     methods: ["GET", "POST", "PUT", "DELETE"],
-    // Credentials: true,
-}));
+    credentials: true,
+  })
+);
 
 let connection;
 
@@ -54,7 +57,7 @@ app.post("/login", async (req, res) => {
       } else if (!isMatch) {
         return res.status(401).json({
           error:
-            "Wrong Email or Password.Please Provide Right Email and Password.",
+            "Wrong Email or Password.Please Provide Valid Email and Password.",
         });
       } else {
         const token = jwt.sign({ email: email }, "spiderman@123", {
@@ -70,6 +73,7 @@ app.post("/login", async (req, res) => {
         return res.status(200).json(token);
       }
     });
+    
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
