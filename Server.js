@@ -1,9 +1,10 @@
 require("dotenv").config();
 const express = require("express");
-const { loginSchema } = require("./validaton");
+const { loginSchema, blogSchema } = require("./validaton");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const cors = require("cors");
+const multer = require("multer");
 const { fromZodError } = require("zod-validation-error");
 const app = express();
 
@@ -12,7 +13,6 @@ app.use(express.json());
 app.use(
   cors({
     origin: "http://localhost:5173",
-    // "methods":"GET,POST,PUT,DELTE"
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   })
@@ -23,6 +23,35 @@ let connection;
 (async () => {
   connection = await require("./db");
 })();
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "./uploads");
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + "-" + file.originalname);
+  },
+});
+
+const fileFilter = (req, file, cb) => {
+  if (
+    file.mimetype === "image/jpeg" ||
+    file.mimetype === "image/png" ||
+    file.mimetype === "image/webp"
+  ) {
+    cb(null, true);
+  } else {
+    cb(
+      new Error("Invalid File Type.Only .jpeg,.png files are Allowed."),
+      false
+    );
+  }
+};
+
+const upload = multer({
+  storage: storage,
+  fileFilter: fileFilter,
+});
 
 app.post("/login", async (req, res) => {
   try {
@@ -73,9 +102,42 @@ app.post("/login", async (req, res) => {
         return res.status(200).json(token);
       }
     });
-    
   } catch (err) {
     return res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/addBlog", upload.single("image"), async (req, res) => {
+  try {
+    const { title, content } = req.body;
+
+    const image = req.file;
+
+    if (!title || !content || !image) {
+      return res.status(400).json({ error: "All Fields are required." });
+    }
+
+    const result = blogSchema.safeParse({
+      title: req.body.title,
+      content: req.body.content,
+      image:image.path
+    });
+
+    if (!result.success) {
+      return res
+        .status(400)
+        .json({ error: fromZodError(result.error).message });
+    }
+
+    const QueryResult = await connection.execute(
+      "insert into Blog(title,content,image_url) values (?,?,?) ",
+      [title, content, image.path]
+    );
+
+    return res.status(201).json({ message: "Blog Created Successfully!" });
+
+  } catch (err) {
+    return res.status(500).json({ error: "Server Error" });
   }
 });
 
