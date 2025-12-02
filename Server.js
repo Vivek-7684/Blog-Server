@@ -5,8 +5,12 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const cors = require("cors");
 const multer = require("multer");
+const cookieparser = require("cookie-parser");
 const { fromZodError } = require("zod-validation-error");
+const checkAuthandAdmin = require("./checkAuthandAdmin");
+
 const app = express();
+app.use(cookieparser());
 
 app.use(express.json());
 
@@ -107,39 +111,45 @@ app.post("/login", async (req, res) => {
   }
 });
 
-app.post("/addBlog", upload.single("image"), async (req, res) => {
-  try {
-    const { title, content } = req.body;
+app.post(
+  "/addBlog",
+  checkAuthandAdmin,
+  upload.single("image"),
+  async (req, res) => {
 
-    const image = req.file;
+   
+    try {
+      const { title, content } = req.body;
 
-    if (!title || !content || !image) {
-      return res.status(400).json({ error: "All Fields are required." });
+      const image = req.file;
+
+      if (!title || !content || !image) {
+        return res.status(400).json({ error: "All Fields are required." });
+      }
+
+      const result = blogSchema.safeParse({
+        title: req.body.title,
+        content: req.body.content,
+        image: image.path,
+      });
+
+      if (!result.success) {
+        return res
+          .status(400)
+          .json({ error: fromZodError(result.error).message });
+      }
+
+      const QueryResult = await connection.execute(
+        "insert into Blog(title,content,image_url) values (?,?,?) ",
+        [title, content, image.path]
+      );
+
+      return res.status(201).json({ message: "Blog Created Successfully!" });
+    } catch (err) {
+      return res.status(500).json({ error: "Server Error" });
     }
-
-    const result = blogSchema.safeParse({
-      title: req.body.title,
-      content: req.body.content,
-      image:image.path
-    });
-
-    if (!result.success) {
-      return res
-        .status(400)
-        .json({ error: fromZodError(result.error).message });
-    }
-
-    const QueryResult = await connection.execute(
-      "insert into Blog(title,content,image_url) values (?,?,?) ",
-      [title, content, image.path]
-    );
-
-    return res.status(201).json({ message: "Blog Created Successfully!" });
-
-  } catch (err) {
-    return res.status(500).json({ error: "Server Error" });
   }
-});
+);
 
 app.listen(process.env.PORT, () => {
   console.log("Server is running on port 3000");
