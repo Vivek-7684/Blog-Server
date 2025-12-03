@@ -46,7 +46,7 @@ const fileFilter = (req, file, cb) => {
     cb(null, true);
   } else {
     cb(
-      new Error("Invalid File Type.Only .jpeg,.png files are Allowed."),
+      new Error("Invalid File Type.Only .jpeg and .png files are Allowed."),
       false
     );
   }
