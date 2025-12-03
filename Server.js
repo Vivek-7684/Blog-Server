@@ -116,8 +116,6 @@ app.post(
   checkAuthandAdmin,
   upload.single("image"),
   async (req, res) => {
-
-   
     try {
       const { title, content } = req.body;
 
@@ -146,7 +144,7 @@ app.post(
 
       return res.status(201).json({ message: "Blog Created Successfully!" });
     } catch (err) {
-      return res.status(500).json({ error: "Server Error" });
+      return res.status(500).json({ error: err.message });
     }
   }
 );
