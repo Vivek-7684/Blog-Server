@@ -149,6 +149,19 @@ app.post(
   }
 );
 
+app.get("/blog", async (req, res) => {
+  const result = await connection.execute("select * from Blog");
+  console.log(result);
+  if (result.length === 0) {
+    return res
+      .status(404)
+      .json({ message: "No Blog is available to show.Please Add Your Blog." });
+
+  }
+  res.status(200).send(result);
+
+});
+
 app.listen(process.env.PORT, () => {
   console.log("Server is running on port 3000");
 });
