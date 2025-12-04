@@ -8,7 +8,7 @@ const multer = require("multer");
 const cookieparser = require("cookie-parser");
 const { fromZodError } = require("zod-validation-error");
 const checkAuthandAdmin = require("./checkAuthandAdmin");
-const path = require('path');
+const path = require("path");
 
 const app = express();
 app.use(cookieparser());
@@ -23,8 +23,7 @@ app.use(
   })
 );
 
-app.use('/uploads', express.static('uploads'));
-
+app.use("/uploads", express.static("uploads"));
 
 let connection;
 
@@ -50,7 +49,9 @@ const fileFilter = (req, file, cb) => {
     cb(null, true);
   } else {
     cb(
-      new Error("Invalid File Type.Only .jpeg and .png files are Allowed."),
+      new Error(
+        "Invalid File Type.Only .jpeg,.webp and .png files are Allowed."
+      ),
       false
     );
   }
@@ -154,16 +155,24 @@ app.post(
 );
 
 app.get("/blog", async (req, res) => {
-  const result = await connection.execute("select * from Blog");
+  const { title } = req.query;
 
-  if (result.length === 0) {
+  let params = [];
+  let query = `select * from Blog WHERE 1=1`;
+
+  if (title) {
+    query += ` AND title = ?`;
+    params.push(title);
+  }
+
+  const [rows] = await connection.execute(query,params);
+
+  if (rows.length === 0) {
     return res
       .status(404)
       .json({ message: "No Blog is available to show.Please Add Your Blog." });
-
   }
   res.status(200).send(result);
-
 });
 
 app.listen(process.env.PORT, () => {
