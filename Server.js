@@ -8,6 +8,7 @@ const multer = require("multer");
 const cookieparser = require("cookie-parser");
 const { fromZodError } = require("zod-validation-error");
 const checkAuthandAdmin = require("./checkAuthandAdmin");
+const path = require('path');
 
 const app = express();
 app.use(cookieparser());
@@ -21,6 +22,9 @@ app.use(
     credentials: true,
   })
 );
+
+app.use('/uploads', express.static('uploads'));
+
 
 let connection;
 
@@ -151,7 +155,7 @@ app.post(
 
 app.get("/blog", async (req, res) => {
   const result = await connection.execute("select * from Blog");
-  console.log(result);
+
   if (result.length === 0) {
     return res
       .status(404)

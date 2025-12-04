@@ -27,6 +27,7 @@
     "multer": "^2.0.2",
     "mysql2": "^3.15.3",
     "nodemon": "^3.1.11",
+    "path": "^0.12.7",
     "zod": "^4.1.13",
     "zod-validation-error": "^5.0.0"
   }
