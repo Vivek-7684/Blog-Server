@@ -11,8 +11,7 @@ const loginSchema = z.object({
 
 const blogSchema = z.object({
   title: z.string().max(100, "Maximum 100 Characters are allowed."),
-  content: z.string().max(2000, "Maximum 2000 Characters are allowed."),
-  image: z.string().max(150, "Image path will be upto 150 Characters. "),
+  content: z.string().max(2000, "Maximum 2000 Characters are allowed.")
 });
 
 module.exports = { blogSchema, loginSchema };

@@ -11,9 +11,11 @@ const checkAuthandAdmin = require("./checkAuthandAdmin");
 const path = require("path");
 
 const app = express();
+
 app.use(cookieparser());
 
 app.use(express.json());
+
 
 app.use(
   cors({
@@ -116,24 +118,35 @@ app.post("/login", async (req, res) => {
   }
 });
 
+
 app.post(
   "/addBlog",
   checkAuthandAdmin,
-  upload.single("image"),
+  upload.fields([
+  {
+    name: 'sectionImages',
+    maxCount: 20  
+  },
+  {
+    name: 'image',
+    maxCount: 1
+  }
+  ]),
   async (req, res) => {
     try {
-      const { title, content } = req.body;
+      const { title, content, tags, summary, quote, author, occupation, sections } = req.body;
 
-      const image = req.file;
+      const image = req.files['image'][0];
+
+      console.log(image);
 
       if (!title || !content || !image) {
-        return res.status(400).json({ error: "All Fields are required." });
+        return res.status(400).json({ error: "Title, Content and Images  are required." });
       }
 
       const result = blogSchema.safeParse({
         title: req.body.title,
         content: req.body.content,
-        image: image.path,
       });
 
       if (!result.success) {
@@ -142,17 +155,35 @@ app.post(
           .json({ error: fromZodError(result.error).message });
       }
 
-      const QueryResult = await connection.execute(
-        "insert into Blog(title,content,image_url) values (?,?,?) ",
-        [title, content, image.path]
+      const [QueryResult] = await connection.execute(
+        "insert into Blog (title, content, image_url, tags, summary, quote, author, occupation) values (?,?,?,?,?,?,?,?) ",
+        [title, content, image.path, tags, summary, quote, author, occupation]
       );
+
+      const blogId = QueryResult.insertId;
+
+      if (sections) {
+        const parsedSections = JSON.parse(sections);
+
+        const sectionImages = req.files?.['sectionImages'] || [];
+
+        for (let i = 0; i < parsedSections.length; i++) {
+          const sec = parsedSections[i];
+
+          const secImage = sectionImages[i] ? sectionImages[i] : null;
+
+          await connection.execute(
+            `INSERT INTO BlogSection (blog_id, sub_title, content, image_url)
+             VALUES (?, ?, ?, ?)`,
+            [blogId, sec.subTitle, sec.content, secImage]
+          );
+        }
+      }
 
       return res.status(201).json({ message: "Blog Created Successfully!" });
     } catch (err) {
       return res.status(500).json({ error: err.message });
-    }
-  }
-);
+    }});
 
 app.get("/blog", async (req, res) => {
   const { title } = req.query;
@@ -165,14 +196,14 @@ app.get("/blog", async (req, res) => {
     params.push(title);
   }
 
-  const [rows] = await connection.execute(query,params);
+  const [rows] = await connection.execute(query, params);
 
   if (rows.length === 0) {
     return res
       .status(404)
       .json({ message: "No Blog is available to show.Please Add Your Blog." });
   }
-  res.status(200).send(result);
+  res.status(200).send(rows);
 });
 
 app.listen(process.env.PORT, () => {
