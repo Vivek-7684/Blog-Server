@@ -236,11 +236,11 @@ app.get("/blog", async (req, res) => {
         content: row.blog_content,
         image_url: row.blog_image,
         created_at: row.created_at,
-        tags:row.tags,
-        quote:row.quote,
-        summary:row.summary,
-        author:row.author,
-        occupation:row.occupation,
+        tags: row.tags,
+        quote: row.quote,
+        summary: row.summary,
+        author: row.author,
+        occupation: row.occupation,
         sections: []
       };
     }
@@ -255,7 +255,56 @@ app.get("/blog", async (req, res) => {
   });
 
   const response = Object.values(blogsMap);
-  
+
+  // get the single current blog
+  const blog = response[0];
+
+  // previous post 
+  const [prevRows] = await connection.execute(
+    `SELECT title, image_url 
+   FROM Blog 
+   WHERE created_at < ? 
+   ORDER BY created_at DESC 
+   LIMIT 1`,
+    [blog.created_at]
+  );
+
+  // next post (created after this one)
+  const [nextRows] = await connection.execute(
+    `SELECT title, image_url 
+   FROM Blog 
+   WHERE created_at > ? 
+   ORDER BY created_at ASC 
+   LIMIT 1`,
+    [blog.created_at]
+  );
+
+  // attach to blog response
+  blog.previousPost = prevRows.length > 0 ? prevRows[0] : null;
+  blog.nextPost = nextRows.length > 0 ? nextRows[0] : null;
+
+  // RELATED POSTS
+  let relatedPosts = [];
+  if (blog.tags) {
+    const tagsArray = blog.tags.split(',').map(t => t.trim().toLowerCase());
+
+    const [related] = await connection.execute(
+      `SELECT title, image_url, tags 
+     FROM Blog 
+     WHERE id != ? 
+     LIMIT 20`,
+      [blog.blog_id]
+    );
+
+    relatedPosts = related.filter(post => {
+      if (!post.tags) return false;
+      const postTags = post.tags.split(',').map(t => t.trim().toLowerCase());
+      return postTags.some(tag => tagsArray.includes(tag));
+    }).slice(0, 3);
+  }
+
+  blog.relatedPosts = relatedPosts;
+
   res.status(200).json(response);
 });
 
