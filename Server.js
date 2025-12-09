@@ -196,6 +196,11 @@ app.get("/blog", async (req, res) => {
       b.content AS blog_content,
       b.image_url AS blog_image,
       b.created_at,
+      b.quote,
+      b.summary,
+      b.tags,
+      b.author,
+      b.occupation,
       bs.id AS section_id,
       bs.sub_title,
       bs.content AS section_content,
@@ -231,6 +236,11 @@ app.get("/blog", async (req, res) => {
         content: row.blog_content,
         image_url: row.blog_image,
         created_at: row.created_at,
+        tags:row.tags,
+        quote:row.quote,
+        summary:row.summary,
+        author:row.author,
+        occupation:row.occupation,
         sections: []
       };
     }
@@ -245,7 +255,7 @@ app.get("/blog", async (req, res) => {
   });
 
   const response = Object.values(blogsMap);
-
+  
   res.status(200).json(response);
 });
 
