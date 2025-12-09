@@ -189,23 +189,66 @@ app.post(
 app.get("/blog", async (req, res) => {
   const { title } = req.query;
 
-  let params = [];
-  let query = `select * from Blog WHERE 1=1`;
+  let sql = `
+    SELECT 
+      b.id AS blog_id, 
+      b.title,
+      b.content AS blog_content,
+      b.image_url AS blog_image,
+      b.created_at,
+      bs.id AS section_id,
+      bs.sub_title,
+      bs.content AS section_content,
+      bs.image_url AS section_image
+    FROM Blog b
+    LEFT JOIN BlogSection bs ON b.id = bs.blog_id
+    WHERE 1=1
+  `;
+
+  const params = [];
 
   if (title) {
-    query += ` AND title = ?`;
+    sql += " AND b.title = ?";
     params.push(title);
   }
 
-  const [rows] = await connection.execute(query, params);
+  const [rows] = await connection.execute(sql, params);
 
   if (rows.length === 0) {
-    return res
-      .status(404)
-      .json({ message: "No Blog is available to show.Please Add Your Blog." });
+    return res.status(404).json({
+      message: "No Blog is available to show. Please Add Your Blog."
+    });
   }
-  res.status(200).send(rows);
+
+  // grouping
+  const blogsMap = {};
+
+  rows.forEach(row => {
+    if (!blogsMap[row.blog_id]) {
+      blogsMap[row.blog_id] = {
+        blog_id: row.blog_id,
+        title: row.title,
+        content: row.blog_content,
+        image_url: row.blog_image,
+        created_at: row.created_at,
+        sections: []
+      };
+    }
+    if (row.section_id) {
+      blogsMap[row.blog_id].sections.push({
+        section_id: row.section_id,
+        sub_title: row.sub_title,
+        content: row.section_content,
+        image_url: row.section_image
+      });
+    }
+  });
+
+  const response = Object.values(blogsMap);
+
+  res.status(200).json(response);
 });
+
 
 app.listen(process.env.PORT, () => {
   console.log("Server is running on port 3000");
