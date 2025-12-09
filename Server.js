@@ -308,6 +308,44 @@ app.get("/blog", async (req, res) => {
   res.status(200).json(response);
 });
 
+app.post("/comment/add", async (req, res) => {
+  try {
+    const { blog_id, name, comment } = req.body;
+
+    if (!blog_id || !name || !comment) {
+      return res.status(400).json({ error: "Name and comment are required." });
+    }
+
+    await connection.execute(
+      "INSERT INTO Comments (blog_id, name, comment) VALUES (?, ?, ?)",
+      [blog_id, name, comment]
+    );
+
+    return res.status(201).json({ message: "Comment added successfully." });
+
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+
+app.get("/comment/:blogId", async (req, res) => {
+  try {
+    const blogId = req.params.blogId;
+
+    const [rows] = await connection.execute(
+      "SELECT name, comment, created_at FROM Comments WHERE blog_id = ? ORDER BY created_at DESC",
+      [blogId]
+    );
+
+    res.status(200).json(rows);
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
 
 app.listen(process.env.PORT, () => {
   console.log("Server is running on port 3000");
